@@ -7,13 +7,20 @@
 @media print{.side,.top,footer,.no-print{display:none!important}.layout{display:block}.content{padding:0}.view{display:none!important}.view.active{display:block!important}.panel{break-inside:avoid}}
 </style></head><body>
 <div class="layout"><aside class="side"><div class="brand"><div class="logo">+</div><div><b>HOSPITAL DEL NORTE</b><small>Expediente clínico digital</small></div></div><div class="navtitle">MENÚ PRINCIPAL</div><nav class="nav"><button class="active" data-view="dashboard"><span>▦</span>Panel principal</button><button data-view="patients"><span>♙</span>Pacientes</button><button data-view="about"><span>ⓘ</span>Acerca del sistema</button></nav><div class="sidefoot">Proyecto académico · Datos ficticios<br>Prototipo local · Versión 1.0</div></aside>
-<main><header class="top"><div class="crumb">Hospital del Norte / <span id="crumb">Panel principal</span></div><div class="user"><div class="avatar">MD</div>Personal médico</div></header><div class="content">
+<main><header class="top"><div class="crumb">Hospital del Norte / <span id="crumb">Panel principal</span></div><div class="user"><span id="cloudStatus" style="font-size:11px;color:#738396;font-weight:500">Conectando a la base de datos…</span><div class="avatar">MD</div>Personal médico</div></header><div class="content">
 <section class="view active" id="dashboard"><div class="heading"><div><h1>Panel principal</h1><p>Gestión y consulta de expedientes clínicos.</p></div><button class="primary" onclick="show('patients')">Ver pacientes</button></div><div class="stats"><div class="stat"><small>Pacientes registrados</small><strong id="nPatients">5</strong><em>Registros de demostración</em></div><div class="stat"><small>Expedientes por completar</small><strong id="nPending">0</strong><em>Historias clínicas editables</em></div><div class="stat"><small>Historias clínicas completas</small><strong id="nDone">5</strong><em>Se actualiza al completar</em></div><div class="stat"><small>Última actualización</small><strong id="dateToday" style="font-size:18px">Hoy</strong><em>Fecha del dispositivo</em></div></div><div class="columns"><div class="panel"><div class="panelhead"><h2>Pacientes registrados</h2><button class="open" onclick="show('patients')">Abrir directorio →</button></div><div id="recent"></div></div><div class="panel"><div class="panelhead"><h2>Accesos rápidos</h2></div><button class="secondary" style="width:100%;margin-bottom:9px" onclick="show('patients')">♙ Abrir directorio de pacientes</button><button class="secondary" style="width:100%" onclick="window.print()">▤ Imprimir vista actual</button><div class="notice" style="margin-top:17px">Los 5 pacientes y sus historias clínicas están precargados con casos ficticios. Abre cada expediente para revisar o editar el contenido.</div></div></div></section>
 <section class="view" id="patients"><div class="heading"><div><h1>Directorio de pacientes</h1><p>Selecciona un paciente para completar su expediente.</p></div><button class="secondary" onclick="show('dashboard')">← Panel principal</button></div><div class="panel"><div class="panelhead"><h2>5 pacientes</h2><input id="search" class="search" placeholder="Buscar por nombre o código…" oninput="renderPatients()"></div><div id="patientTable"></div></div></section>
 <section class="view" id="record"><div class="heading"><div><h1>Expediente clínico</h1><p>Historia clínica individual · Hospital del Norte</p></div><div class="no-print"><button class="secondary" onclick="window.print()">Imprimir / Guardar PDF</button> <button class="secondary" onclick="show('patients')">Volver</button></div></div><div id="recordBody"></div></section>
-<section class="view" id="about"><div class="heading"><div><h1>Acerca del sistema</h1><p>Alcance del prototipo académico.</p></div></div><div class="panel"><h2>Hospital del Norte — Expediente Clínico Digital</h2><p>Prototipo educativo de historia clínica electrónica. Permite organizar cinco expedientes ficticios y completar la información clínica de cada caso.</p><ul><li>Directorio y búsqueda de pacientes.</li><li>Datos de identificación y antecedentes.</li><li>Anamnesis, examen físico y signos vitales.</li><li>Diagnóstico, estudios complementarios y plan terapéutico.</li><li>Evolución clínica, impresión y exportación a PDF.</li></ul><div class="notice">Este archivo guarda los cambios en el almacenamiento local del navegador. No es un sistema hospitalario real: no tiene servidor, control de acceso, cifrado ni respaldo institucional. Los cinco casos y todos sus datos son inventados para fines académicos. No introduzcas información real o identificable de pacientes.</div></div></section>
+<section class="view" id="about"><div class="heading"><div><h1>Acerca del sistema</h1><p>Alcance del prototipo académico.</p></div></div><div class="panel"><h2>Hospital del Norte — Expediente Clínico Digital</h2><p>Prototipo educativo de historia clínica electrónica. Permite organizar cinco expedientes ficticios y completar la información clínica de cada caso.</p><ul><li>Directorio y búsqueda de pacientes.</li><li>Datos de identificación y antecedentes.</li><li>Anamnesis, examen físico y signos vitales.</li><li>Diagnóstico, estudios complementarios y plan terapéutico.</li><li>Evolución clínica, impresión y exportación a PDF.</li></ul><div class="notice">Este prototipo utiliza Supabase para almacenar y sincronizar los cinco expedientes ficticios entre dispositivos. No tiene inicio de sesión ni controles de acceso individuales: cualquier persona con el enlace puede consultar y modificar los datos. Es exclusivamente académico. No introduzcas información real o identificable de pacientes.</div></div></section>
 </div><footer>Hospital del Norte · Sistema demostrativo de expediente clínico digital · Uso académico</footer></main></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL = "https://bbzpwgrokvdogvczwbwf.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_NGWbbVcyfyPQnoJA14IKtg_eetOoaVn";
+const cloudClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+let cloudReady = false;
+let cloudChannel = null;
+function cloudStatus(message, color="#738396"){const el=document.getElementById("cloudStatus");if(el){el.textContent=message;el.style.color=color;}}
 const blank=()=>({reason:'',history:'',personal:'',family:'',surgical:'',allergies:'',meds:'',gyn:'',vitals:'',exam:'',diagnosis:'',tests:'',treatment:'',evolution:'',discharge:''});
 const initial=[
 {code:'HN-0001',first:'Daniela Fernanda',last:'Rojas Méndez',sex:'Femenino',dob:'2002-02-18',job:'Estudiante universitaria',clinical:{
@@ -82,7 +89,60 @@ discharge:'Manejo ambulatorio con control. Acudir a urgencias ante vómitos con 
 ];
 let patients=JSON.parse(localStorage.getItem('hn_records_v2')||'null');if(!patients){patients=initial.map((a,i)=>({id:i+1,...a,clinical:{...blank(),...a.clinical}}));localStorage.setItem('hn_records_v2',JSON.stringify(patients));}
 let currentId=null;
-function save(){localStorage.setItem('hn_records_v2',JSON.stringify(patients));stats()}
+function save(p){
+  localStorage.setItem('hn_records_v2',JSON.stringify(patients));
+  stats();
+  if(!cloudReady) return Promise.reject(new Error('La conexión con la base de datos todavía no está lista.'));
+  return cloudClient.from('patient_records').upsert({
+    id:p.id,
+    data:p,
+    updated_at:new Date().toISOString()
+  });
+}
+async function initCloud(){
+  try{
+    cloudStatus('Conectando…');
+    const {data,error}=await cloudClient.from('patient_records').select('id,data');
+    if(error) throw error;
+    if(!data || data.length===0){
+      // Primera carga: migra los datos locales del primer dispositivo que abra esta versión.
+      const localPatients=JSON.parse(localStorage.getItem('hn_records_v2')||'null')||patients;
+      const rows=localPatients.map(p=>({id:p.id,data:p,updated_at:new Date().toISOString()}));
+      const {error:seedError}=await cloudClient.from('patient_records').upsert(rows);
+      if(seedError) throw seedError;
+      patients=localPatients;
+      localStorage.setItem('hn_records_v2',JSON.stringify(patients));
+    }else{
+      patients=data.map(row=>row.data).filter(Boolean).sort((a,b)=>a.id-b.id);
+      localStorage.setItem('hn_records_v2',JSON.stringify(patients));
+    }
+    cloudReady=true;
+    cloudStatus('Conectado · sincronización activa','#15988e');
+    renderDash();
+    if(document.getElementById('patients').classList.contains('active')) renderPatients();
+    cloudChannel=cloudClient.channel('patient-records-live')
+      .on('postgres_changes',{event:'*',schema:'public',table:'patient_records'},payload=>{
+        const row=payload.new;
+        if(!row || !row.data) return;
+        const index=patients.findIndex(p=>p.id===row.id);
+        if(index>=0) patients[index]=row.data; else patients.push(row.data);
+        patients.sort((a,b)=>a.id-b.id);
+        localStorage.setItem('hn_records_v2',JSON.stringify(patients));
+        stats();
+        if(document.getElementById('dashboard').classList.contains('active')) renderDash();
+        if(document.getElementById('patients').classList.contains('active')) renderPatients();
+        cloudStatus('Conectado · cambios sincronizados','#15988e');
+      })
+      .subscribe((status)=>{
+        if(status==='CHANNEL_ERROR' || status==='TIMED_OUT') cloudStatus('Error en sincronización','#b45309');
+      });
+  }catch(error){
+    console.error('Error de conexión con Supabase:',error);
+    cloudReady=false;
+    cloudStatus('Sin conexión con la base de datos','#b45309');
+    alert('No se pudo conectar con Supabase. Revisa la conexión, la URL, la clave pública y los permisos de la tabla. Tus datos locales no se han eliminado.');
+  }
+}
 function show(id){document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.getElementById('crumb').textContent=({dashboard:'Panel principal',patients:'Pacientes',record:'Expediente clínico',about:'Acerca del sistema'})[id];if(id==='patients')renderPatients();if(id==='dashboard')renderDash();window.scrollTo(0,0)}
 function age(d){let b=new Date(d+'T00:00:00'),n=new Date();let a=n.getFullYear()-b.getFullYear();if(n.getMonth()<b.getMonth()||(n.getMonth()===b.getMonth()&&n.getDate()<b.getDate()))a--;return a+' años'}
 function done(p){return ['reason','history','personal','vitals','exam','diagnosis','treatment','evolution'].every(k=>(p.clinical[k]||'').trim().length>0)}
@@ -94,6 +154,24 @@ const fields=[['Identificación y motivo de consulta',[['reason','Motivo de cons
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function openRecord(id){currentId=id;let p=patients.find(x=>x.id===id),c=p.clinical;let out=`<div class="panel"><div class="profile"><div class="bigavatar">${p.first[0]}${p.last[0]}</div><div><h2>${p.first} ${p.last}</h2><div class="muted">${p.code} · ${age(p.dob)} · ${p.sex} · ${p.job}</div></div></div><div class="recordgrid"><div class="recordbox"><h3>DATOS DE IDENTIFICACIÓN</h3><p><b>Fecha de nacimiento:</b> ${p.dob}</p><p><b>Edad:</b> ${age(p.dob)}</p><p><b>Código:</b> ${p.code}</p><p><b>Ocupación:</b> ${p.job}</p><p><b>Procedencia:</b> Cochabamba (dato simulado)</p></div><div class="recordbox"><h3>ESTADO DEL EXPEDIENTE</h3><p>${done(p)?'Historia clínica marcada como completa':'Historia clínica pendiente de completar'}</p><p class="sub">Los datos personales de esta ficha son ficticios.</p></div></div></div><form id="clinicalForm">`;
 for(let [title,items] of fields){out+=`<div class="panel"><div class="panelhead"><h2>${title}</h2></div><div class="formgrid">`;for(let [key,label] of items)out+=`<div class="field wide"><label>${label}</label><textarea name="${key}" placeholder="Escribe aquí ${label.toLowerCase()}…">${esc(c[key])}</textarea></div>`;out+='</div></div>'}
-out+=`<div class="actions no-print"><button type="button" class="secondary" onclick="show('patients')">Cancelar</button><button type="submit" class="primary">Guardar historia clínica</button></div></form>`;document.getElementById('recordBody').innerHTML=out;show('record');document.getElementById('clinicalForm').onsubmit=e=>{e.preventDefault();let fd=new FormData(e.target);for(let [k,v] of fd.entries())p.clinical[k]=v;save();openRecord(id);alert('Expediente guardado en este navegador.')}}
-document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');show(b.dataset.view)});renderDash();stats();
+out+=`<div class="actions no-print"><button type="button" class="secondary" onclick="show('patients')">Cancelar</button><button type="submit" class="primary">Guardar historia clínica</button></div></form>`;document.getElementById('recordBody').innerHTML=out;show('record');document.getElementById('clinicalForm').onsubmit=async e=>{
+  e.preventDefault();
+  let fd=new FormData(e.target);
+  for(let [k,v] of fd.entries())p.clinical[k]=v;
+  const submitButton=e.target.querySelector('button[type="submit"]');
+  submitButton.disabled=true;
+  submitButton.textContent='Guardando…';
+  try{
+    await save(p);
+    openRecord(id);
+    alert('Expediente guardado en Supabase y sincronizado en línea.');
+  }catch(error){
+    console.error(error);
+    localStorage.setItem('hn_records_v2',JSON.stringify(patients));
+    alert('No se pudo guardar en Supabase. El cambio quedó solo en este navegador. Comprueba tu conexión e inténtalo nuevamente.');
+    submitButton.disabled=false;
+    submitButton.textContent='Guardar historia clínica';
+  }
+}}
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');show(b.dataset.view)});renderDash();stats();initCloud();
 </script></body></html>
